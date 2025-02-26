@@ -3,12 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import sequelize from "./db.js";
 import morgan from "morgan";
-import {
-  // Url,
-  createPartitionedTable,
-  createPartitionIfNeeded,
-  dropTable,
-} from "./models/Url.js";
+import { setupDatabase, cleanupDatabase } from "./models/Url.js";
 import Analytics from "./models/Analytics.js";
 import { verifyUser } from "./middlewares/auth.js";
 
@@ -23,6 +18,9 @@ const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log("✅ Connected to DB");
+
+    // await cleanupDatabase();
+    // await setupDatabase();
   } catch (err) {
     console.error("❌ DB Connection Error:", err);
     process.exit(1);
@@ -40,10 +38,7 @@ const syncDB = async () => {
 
 (async () => {
   await connectDB();
-  // await dropTable();
-  await createPartitionedTable();
   await syncDB();
-  await createPartitionIfNeeded();
 })();
 
 const PORT = process.env.PORT || 5000;

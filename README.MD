@@ -57,6 +57,6 @@ A B-Tree (Balanced Tree) is a self-balancing search tree where:
 ✅ If you need multi-user performance, partition by userId (List Partitioning).
 ✅ If URLs are randomly accessed, use Hash Partitioning on shortUrl for balanced reads.
 
-🔹 Combination Strategy: Using Range + Hash Partitioning for the best.
+🔹  Hash Partitioning for the best load transfer.
 I did manual partioning as neon db does not do that on its own
 ```
