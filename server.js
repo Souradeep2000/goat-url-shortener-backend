@@ -2,14 +2,22 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import sequelize from "./db.js";
-import Url from "./models/Url.js";
+import morgan from "morgan";
+import {
+  // Url,
+  createPartitionedTable,
+  createPartitionIfNeeded,
+  dropTable,
+} from "./models/Url.js";
 import Analytics from "./models/Analytics.js";
+import { verifyUser } from "./middlewares/auth.js";
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(morgan("dev"));
 
 const connectDB = async () => {
   try {
@@ -32,13 +40,19 @@ const syncDB = async () => {
 
 (async () => {
   await connectDB();
-  //   await syncDB();
+  // await dropTable();
+  await createPartitionedTable();
+  await syncDB();
+  await createPartitionIfNeeded();
 })();
 
 const PORT = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
   res.send("URL Shortener Backend is Running!");
+});
+app.get("/protected-route", verifyUser, (req, res) => {
+  res.json({ message: "You are logged in!", user: req.user });
 });
 
 app.listen(PORT, () => {
