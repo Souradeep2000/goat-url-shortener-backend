@@ -25,8 +25,20 @@ const shards = [
   }),
 ];
 
+const globalSequelize = new Sequelize(process.env.GLOBAL_DATABASE, {
+  dialect: "postgres",
+  logging: false,
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+  },
+});
+
 process.on("SIGINT", async () => {
   console.log("Received SIGINT. Closing database...");
+  await globalSequelize.close();
   await Promise.all(
     shards.map(async (shard, index) => {
       try {
@@ -40,4 +52,4 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-export default shards;
+export { shards, globalSequelize };

@@ -1,15 +1,17 @@
-import shards from "../db.js";
+import { shards, globalSequelize } from "../db.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const setupShards = async (idx) => {
   try {
-    // 1️⃣ Create Parent Table with Hash Partitioning
     const sequelize = shards[idx];
+
+    await sequelize.authenticate();
     await sequelize.sync({ alter: true });
     console.log(`✅Shard${idx} synced successfully`);
 
+    // 1️⃣ Create Parent Table with Hash Partitioning
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS urls (
         id BIGINT,
@@ -31,46 +33,39 @@ const setupShards = async (idx) => {
       `);
     }
 
-    // 3️⃣ Create Unique Short URLs Table
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS short_urls_unique (
-        "shortUrl" TEXT PRIMARY KEY
-      );
-    `);
-
-    //4️⃣ Drop Existing Trigger if it Exists
-    await sequelize.query(`
-      DROP TRIGGER IF EXISTS shorturl_unique_trigger ON urls;
-    `);
-
-    // 5️⃣ Drop Existing Function if it Exists
+    // 3️⃣Drop Existing Function if it Exists
     await sequelize.query(`
       DROP FUNCTION IF EXISTS enforce_unique_shorturl CASCADE;
     `);
 
-    // 6️⃣ Function to Enforce Global Uniqueness
+    // 4️⃣ Function to Enforce Global Uniqueness
     await sequelize.query(`
       CREATE OR REPLACE FUNCTION enforce_unique_shorturl()
       RETURNS TRIGGER AS $$
       BEGIN
-        IF EXISTS (SELECT 1 FROM short_urls_unique WHERE "shortUrl" = NEW."shortUrl") THEN
-          RAISE EXCEPTION '❌ Duplicate shortUrl detected!';
-        END IF;
-
-        INSERT INTO short_urls_unique ("shortUrl") VALUES (NEW."shortUrl");
-        RETURN NEW;
+        -- Ensure uniqueness in the global table
+        INSERT INTO shorturls_shard_map ("shortUrl", "shardIdx")
+        VALUES (NEW."shortUrl", NEW."shardIdx")
+        ON CONFLICT ("shortUrl") DO NOTHING;
+        
+      IF NOT FOUND THEN
+      RAISE EXCEPTION '❌ Duplicate shortUrl detected!';
+      
+      END IF;
+      
+      RETURN NEW;
       END;
       $$ LANGUAGE plpgsql;
     `);
 
-    // 7️⃣ Attach Trigger to Enforce Uniqueness Before Insert
+    // 5️⃣  Attach Trigger to Enforce Uniqueness Before Insert
     await sequelize.query(`
       CREATE TRIGGER shorturl_unique_trigger
       BEFORE INSERT ON urls
       FOR EACH ROW EXECUTE FUNCTION enforce_unique_shorturl();
     `);
 
-    // 8️⃣ Add Indexes for Fast Queries
+    //  6️⃣ Add Indexes for Fast Queries
     await sequelize.query(`
       CREATE INDEX IF NOT EXISTS idx_urls_shortUrl ON urls ("shortUrl");
       CREATE INDEX IF NOT EXISTS idx_urls_createdAt ON urls ("createdAt");
@@ -83,9 +78,59 @@ const setupShards = async (idx) => {
   }
 };
 
+const setupGlobal = async () => {
+  try {
+    await globalSequelize.authenticate();
+    await globalSequelize.sync({ alter: true });
+    console.log(`✅global-database synced successfully`);
+
+    await globalSequelize.query(`
+      CREATE TABLE shorturls_shard_map (
+      "shortUrl" TEXT PRIMARY KEY,
+      "shardIdx" INTEGER NOT NULL
+    ) PARTITION BY HASH (shortUrl)`);
+
+    for (let i = 0; i < 8; i++) {
+      await globalSequelize.query(`
+        CREATE TABLE IF NOT EXISTS shorturls_shard_map_${i}
+        PARTITION OF shorturls_shard_map
+        FOR VALUES WITH (MODULUS 8, REMAINDER ${i});
+      `);
+    }
+
+    await globalSequelize.query(`
+      CREATE INDEX IF NOT EXISTS idx_shorturls_shard_hash 
+      ON shorturls_shard_map ("shortUrl");
+      `);
+
+    console.log(`✅global setup completed successfully!`);
+  } catch (error) {
+    console.error(`❌ Error setting up global-database:`, error);
+  }
+};
+
+const cleanupGlobalDatabase = async () => {
+  try {
+    for (let i = 0; i < 8; i++) {
+      await globalSequelize.query(
+        `DROP TABLE IF EXISTS shorturls_shard_map_${i} CASCADE;`
+      );
+    }
+
+    await globalSequelize.query(
+      `DROP TABLE IF EXISTS shorturls_shard_map CASCADE;`
+    );
+    console.log(`✅ global-database cleanup completed successfully!`);
+  } catch (error) {
+    console.error(`❌ Error cleaning up global-database:`, error);
+  }
+};
+
 const setupDatabase = async () => {
   try {
     const promises = [];
+
+    promises.push(setupGlobal());
 
     for (let i = 0; i < shards.length; i++) {
       promises.push(setupShards(i));
@@ -100,6 +145,8 @@ const setupDatabase = async () => {
 const cleanupDatabase = async () => {
   try {
     const promises = [];
+
+    promises.push(cleanupGlobalDatabase());
 
     for (let i = 0; i < shards.length; i++) {
       promises.push(cleanupShards(i));

@@ -66,3 +66,30 @@ I did manual partioning as neon db does not do that on its own
 ```
 ✅ I sharded the database based on regions and created global ids using snowflake id (64 bits, time based unique )rather than UUIDS (124 bits very slow).
 ```
+🔹  On Sharding , the information of shorturl is lost as I don't know which shard contains that shortUrl
+- to handle that Cache Hit & Cache Miss is implemented
+
+### ⚡ Cache Hit & Cache Miss
+
+
+Cache Hit: When the requested data is found in Redis, meaning it's fetched quickly without querying the database. 🚀
+<br>
+
+Cache Miss: When the requested data is not found in Redis, so the system queries PostgreSQL, retrieves the data, and then stores it in Redis for future fast access. 
+<br>
+Using this cache-first approach improves performance by reducing database queries and serving frequently accessed data instantly. 🔥
+<br>
+
+<b>🚀(Redis + PostgreSQL)</b> <br>
+Used Redis as a cache for quick lookup. <br>
+Used PostgreSQL as a backup for durability as redis is volatile. <br>
+✅ How it Works <br>
+
+- On Write (Short URL Creation) : Insert shortUrl → shardIndex into PostgreSQL.
+Also insert the same mapping into Redis (cache).
+- On Read (Fetching Long URL) : First, check Redis.
+If found → Directly get the shardIndex from Redis.
+If not found → Query PostgreSQL, then store the result in Redis.
+
+
+
