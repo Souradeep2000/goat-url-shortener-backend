@@ -60,3 +60,9 @@ A B-Tree (Balanced Tree) is a self-balancing search tree where:
 🔹  Hash Partitioning for the best load transfer.
 I did manual partioning as neon db does not do that on its own
 ```
+
+# 🚀 Sharding
+
+```
+✅ I sharded the database based on regions and created global ids using snowflake id (64 bits, time based unique )rather than UUIDS (124 bits very slow).
+```

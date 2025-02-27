@@ -1,14 +1,18 @@
-import sequelize from "../db.js";
+import shards from "../db.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const setupDatabase = async () => {
+const setupShards = async (idx) => {
   try {
     // 1️⃣ Create Parent Table with Hash Partitioning
+    const sequelize = shards[idx];
+    await sequelize.sync({ alter: true });
+    console.log(`✅Shard${idx} synced successfully`);
+
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS urls (
-        id SERIAL,
+        id BIGINT,
         "shortUrl" TEXT NOT NULL,
         "longUrl" TEXT NOT NULL,
         "userId" TEXT,
@@ -34,7 +38,17 @@ const setupDatabase = async () => {
       );
     `);
 
-    // 4️⃣ Function to Enforce Global Uniqueness
+    //4️⃣ Drop Existing Trigger if it Exists
+    await sequelize.query(`
+      DROP TRIGGER IF EXISTS shorturl_unique_trigger ON urls;
+    `);
+
+    // 5️⃣ Drop Existing Function if it Exists
+    await sequelize.query(`
+      DROP FUNCTION IF EXISTS enforce_unique_shorturl CASCADE;
+    `);
+
+    // 6️⃣ Function to Enforce Global Uniqueness
     await sequelize.query(`
       CREATE OR REPLACE FUNCTION enforce_unique_shorturl()
       RETURNS TRIGGER AS $$
@@ -49,28 +63,57 @@ const setupDatabase = async () => {
       $$ LANGUAGE plpgsql;
     `);
 
-    // 5️⃣ Attach Trigger to Enforce Uniqueness Before Insert
+    // 7️⃣ Attach Trigger to Enforce Uniqueness Before Insert
     await sequelize.query(`
       CREATE TRIGGER shorturl_unique_trigger
       BEFORE INSERT ON urls
       FOR EACH ROW EXECUTE FUNCTION enforce_unique_shorturl();
     `);
 
-    // 6️⃣ Add Indexes for Fast Queries
+    // 8️⃣ Add Indexes for Fast Queries
     await sequelize.query(`
       CREATE INDEX IF NOT EXISTS idx_urls_shortUrl ON urls ("shortUrl");
       CREATE INDEX IF NOT EXISTS idx_urls_createdAt ON urls ("createdAt");
       CREATE INDEX IF NOT EXISTS idx_urls_userId ON urls ("userId");
     `);
 
-    console.log("✅ Database setup completed successfully!");
+    console.log(`✅Shard${idx} setup completed successfully!`);
   } catch (error) {
-    console.error("❌ Error setting up database:", error);
+    console.error(`❌ Error setting up Shard${idx}:`, error);
+  }
+};
+
+const setupDatabase = async () => {
+  try {
+    const promises = [];
+
+    for (let i = 0; i < shards.length; i++) {
+      promises.push(setupShards(i));
+    }
+
+    await Promise.all(promises);
+  } catch (err) {
+    console.log(err);
   }
 };
 
 const cleanupDatabase = async () => {
   try {
+    const promises = [];
+
+    for (let i = 0; i < shards.length; i++) {
+      promises.push(cleanupShards(i));
+    }
+
+    await Promise.all(promises);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+const cleanupShards = async (idx) => {
+  try {
+    const sequelize = shards[idx];
     await sequelize.query(
       `DROP TRIGGER IF EXISTS shorturl_unique_trigger ON urls;`
     );
@@ -84,9 +127,9 @@ const cleanupDatabase = async () => {
     }
 
     await sequelize.query(`DROP TABLE IF EXISTS urls CASCADE;`);
-    console.log("✅ Database cleanup completed successfully!");
+    console.log(`✅ Shard${idx} cleanup completed successfully!`);
   } catch (error) {
-    console.error("❌ Error cleaning up database:", error);
+    console.error(`❌ Error cleaning up Shard${idx}:`, error);
   }
 };
 
