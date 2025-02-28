@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
-import { setupDatabase } from "./models/Url.js";
+import { cleanupDatabase, setupDatabase } from "./models/Url.js";
 import Analytics from "./models/Analytics.js";
 import { verifyUser } from "./middlewares/auth.js";
 
@@ -15,10 +15,15 @@ app.use(morgan("dev"));
 
 const connectDB = async () => {
   try {
+    await cleanupDatabase();
     await setupDatabase();
     console.log("✅ Connected to DB");
 
-    // await cleanupDatabase();
+    // 🔍 Check if Global DB is connected
+    // await globalSequelize
+    //   .authenticate()
+    //   .then(() => console.log("✅ Global DB Connection Verified"))
+    //   .catch((err) => console.error("❌ Global DB Connection Error:", err));
   } catch (err) {
     console.error("❌ DB Connection Error:", err);
     process.exit(1);

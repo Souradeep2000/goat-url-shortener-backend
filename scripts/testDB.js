@@ -1,115 +1,119 @@
-import pkg from "pg";
-import dotenv from "dotenv";
+import { shards, globalSequelize } from "../db.js";
 
-const { Client } = pkg;
-dotenv.config();
+import SnowflakeID from "../middlewares/snowflake.js";
 
-const client = new Client({
-  user: process.env.DATABASE_USER,
-  host: process.env.DATABASE_HOST,
-  database: process.env.DATABASE_DB_NAME,
-  password: process.env.DATABASE_PASSWORD,
-  port: 5432,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
-
-async function testDatabase() {
+async function testConnections() {
   try {
-    await client.connect();
-    console.log("✅ Connected to PostgreSQL");
-
-    // Check if the indexes exist
-    const indexCheckQuery = `
-      SELECT indexname, indexdef 
-      FROM pg_indexes 
-      WHERE tablename = 'urls';
-    `;
-
-    const { rows: indexes } = await client.query(indexCheckQuery);
-    console.log("\n📌 Indexes on 'urls' table:");
-    indexes.forEach((idx) => console.log(idx.indexname, "→", idx.indexdef));
-
-    // Check partitions exist
-    const partitionCheckQuery = `
-      SELECT inhrelid::regclass AS partition_name
-      FROM pg_inherits 
-      JOIN pg_class AS child ON inhrelid = child.oid
-      WHERE inhparent = 'urls'::regclass;
-    `;
-
-    const { rows: partitions } = await client.query(partitionCheckQuery);
-    console.log("\n📂 Partitions:");
-    partitions.forEach((p) => console.log(p.partition_name));
-
-    // Insert test data into partitions
-    console.log("\n📝 Inserting test data...");
-    const testEntries = [
-      { shortUrl: "test123", longUrl: "https://example.com", userId: "1" },
-      { shortUrl: "test456", longUrl: "https://example2.com", userId: "2" },
-    ];
-
-    for (let entry of testEntries) {
-      try {
-        const insertQuery = `INSERT INTO urls ("shortUrl", "longUrl", "userId", "clicks", "createdAt") 
-                             VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
-
-        const { rows: insertedData } = await client.query(insertQuery, [
-          entry.shortUrl,
-          entry.longUrl,
-          entry.userId,
-          0,
-          new Date(),
-        ]);
-
-        console.log(`✅ Inserted: ${entry.shortUrl}`, insertedData[0]);
-      } catch (err) {
-        console.error(`❌ Error inserting ${entry.shortUrl}:`, err.message);
-      }
-    }
-
-    // Check unique constraint enforcement
-    console.log("\n⚠️ Testing unique constraint...");
-    try {
-      await client.query(
-        `INSERT INTO urls ("shortUrl", "longUrl", "userId", "clicks", "createdAt") 
-                          VALUES ($1, $2, $3, $4, $5);`,
-        ["test123", "https://example3.com", "3", 0, new Date()]
-      );
-      console.log("❌ Error: Unique constraint failed to trigger!");
-    } catch (err) {
-      console.log("✅ Unique constraint working:", err.message);
-    }
-
-    // Retrieve and verify inserted data
-    const selectQuery = `SELECT * FROM urls WHERE "shortUrl" = 'test123' OR "shortUrl" = 'test456';`;
-    const { rows: data } = await client.query(selectQuery);
-
-    if (data.length > 0) {
-      console.log("\n🔍 Retrieved data:", data);
-      console.log("✅ Database setup looks fine!");
-
-      console.log("\n🗑️ Deleting test data...");
-      const deleteQuery = `DELETE FROM urls WHERE "shortUrl" = $1;`;
-
-      for (let entry of testEntries) {
-        await client.query(deleteQuery, [entry.shortUrl]);
-        await client.query(
-          `DELETE FROM short_urls_unique WHERE "shortUrl" = $1;`,
-          [entry.shortUrl]
-        );
-        console.log(`✅ Deleted: ${entry.shortUrl}`);
-      }
-    } else {
-      console.log("\n❌ Data was not inserted. Check constraints or indexes.");
-    }
+    await globalSequelize.authenticate();
+    console.log("✅ Connected to Global Database");
   } catch (err) {
-    console.error("❌ Error:", err);
-  } finally {
-    await client.end();
-    console.log("🔌 Disconnected from PostgreSQL");
+    console.error("❌ Failed to connect to Global Database:", err.message);
+  }
+
+  await Promise.all(
+    shards.map(async (shard, index) => {
+      try {
+        await shard.authenticate();
+        console.log(`✅ Connected to Shard ${index}`);
+      } catch (err) {
+        console.error(`❌ Failed to connect to Shard ${index}:`, err.message);
+      }
+    })
+  );
+}
+
+// testConnections();
+
+async function checkTables() {
+  const globalQuery =
+    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';";
+
+  try {
+    const [globalTables] = await globalSequelize.query(globalQuery);
+    console.log("🔍 Raw Response from Global DB:", globalTables);
+
+    // FIX: Ensure we correctly extract table names
+    const tableNames = globalTables.map((row) => row?.table_name || row);
+    console.log("📌 Tables in Global DB:", tableNames);
+  } catch (err) {
+    console.error("❌ Error checking tables in Global DB:", err.message);
+  }
+
+  await Promise.all(
+    shards.map(async (shard, index) => {
+      try {
+        const [tables] = await shard.query(globalQuery);
+        console.log(`🔍 Raw Response from Shard ${index}:`, tables);
+
+        // FIX: Extract table names correctly
+        const tableNames = tables.map((row) => row?.table_name || row);
+        console.log(`📌 Tables in Shard ${index}:`, tableNames);
+      } catch (err) {
+        console.error(
+          `❌ Error checking tables in Shard ${index}:`,
+          err.message
+        );
+      }
+    })
+  );
+}
+
+// checkTables();
+
+async function insertTestData() {
+  const shortUrl = "test123";
+  const userId = "1";
+
+  const longUrl = "https://example.com";
+
+  const snowflake = new SnowflakeID();
+  const id = snowflake.generate();
+  console.log(id);
+  const shardIdx = Number(id % BigInt(shards.length));
+  const timestamp = Number(id >> 22n) + 1735689600000;
+
+  const global_t = await globalSequelize.transaction();
+  const shard_t = await shards[shardIdx].transaction();
+  try {
+    const globalInsertQuery = `
+    WITH locked AS (
+      SELECT "shardIdx" FROM shorturls_shard_map
+      WHERE "shortUrl" = :shortUrl
+      FOR UPDATE
+    )
+    INSERT INTO shorturls_shard_map ("shortUrl", "shardIdx")
+    VALUES (:shortUrl, :shardIdx);
+  `;
+
+    const global_result = await globalSequelize.query(globalInsertQuery, {
+      replacements: { shortUrl, shardIdx },
+      transaction: global_t,
+    });
+
+    console.log(`✅ Inserted into Global DB. Assigned to Shard ${shardIdx}`);
+
+    // Step 2: Insert into the correct shard
+
+    const insertQuery = `
+    INSERT INTO urls ("id", "shortUrl", "longUrl", "userId", "createdAt")
+        VALUES (:id, :shortUrl, :longUrl, :userId, TO_TIMESTAMP(:timestamp / 1000.0))
+    RETURNING *;
+  `;
+
+    const shard_result = await shards[shardIdx].query(insertQuery, {
+      replacements: { id, shortUrl, longUrl, userId, timestamp },
+      transaction: shard_t,
+    });
+
+    console.log(`✅ Inserted into Shard ${shardIdx}:`, shard_result);
+    await global_t.commit();
+    await shard_t.commit();
+  } catch (err) {
+    await global_t.rollback();
+    await shard_t.rollback();
+    console.error("❌ Error inserting into DB:", err.message);
+    return;
   }
 }
 
-testDatabase();
+insertTestData();

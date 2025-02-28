@@ -2,10 +2,18 @@ import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 dotenv.config();
 
+const poolConfig = {
+  max: 20, // Increase max connections
+  min: 5,
+  acquire: 30000,
+  idle: 10000,
+};
+
 const shards = [
   new Sequelize(process.env.DATABASE_URL_SHARD1_EAST_US, {
     dialect: "postgres",
     logging: false,
+    pool: poolConfig,
     dialectOptions: {
       ssl: {
         require: true,
@@ -16,6 +24,7 @@ const shards = [
   new Sequelize(process.env.DATABASE_URL_SHARD2_FRANKFURT, {
     dialect: "postgres",
     logging: false,
+    pool: poolConfig,
     dialectOptions: {
       ssl: {
         require: true,
@@ -28,6 +37,7 @@ const shards = [
 const globalSequelize = new Sequelize(process.env.GLOBAL_DATABASE, {
   dialect: "postgres",
   logging: false,
+  pool: poolConfig,
   dialectOptions: {
     ssl: {
       require: true,
