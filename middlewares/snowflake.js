@@ -3,10 +3,10 @@ import os from "os";
 
 class SnowflakeID {
   constructor({ epoch = 1735689600000 } = {}) {
-    this.epoch = epoch; // Set to Jan 1, 2025
+    this.epoch = epoch;
     this.machineId = this.generateMachineId(); // 10 bits
-    this.processId = process.pid % 32; // 5 bits (0-31)
-    this.sequence = 0; // 7 bits
+    this.processId = process.pid % 32; // 5 bits
+    this.sequence = 0; // 5 bits (0-31)
     this.lastTimestamp = -1;
   }
 
@@ -15,15 +15,15 @@ class SnowflakeID {
     const macAddresses = Object.values(networkInterfaces)
       .flat()
       .map((iface) => iface.mac)
-      .filter((mac) => mac && mac !== "00:00:00:00:00:00"); // Filter invalid MACs
+      .filter((mac) => mac && mac !== "00:00:00:00:00:00");
 
-    const mac = macAddresses.length > 0 ? macAddresses[0] : "fallback"; // Use fallback if no MAC found
+    const mac = macAddresses.length > 0 ? macAddresses[0] : "fallback";
     return (
       parseInt(
         crypto.createHash("md5").update(mac).digest("hex").slice(0, 4),
         16
       ) % 1024
-    ); // 10-bit ID
+    );
   }
 
   getTimestamp() {
@@ -38,7 +38,7 @@ class SnowflakeID {
     return timestamp;
   }
 
-  generate() {
+  generate(regionCode) {
     let timestamp = this.getTimestamp();
 
     if (timestamp < this.lastTimestamp) {
@@ -47,7 +47,7 @@ class SnowflakeID {
     }
 
     if (timestamp === this.lastTimestamp) {
-      this.sequence = (this.sequence + 1) & 127; // 7-bit sequence (0-127)
+      this.sequence = (this.sequence + 1) & 31; // 5-bit sequence
       if (this.sequence === 0) {
         timestamp = this.waitForNextMillis(this.lastTimestamp);
       }
@@ -59,10 +59,15 @@ class SnowflakeID {
 
     return (
       (BigInt(timestamp) << 22n) |
-      (BigInt(this.machineId) << 12n) | // Corrected bit shift
-      (BigInt(this.processId) << 7n) | // 5-bit process ID
+      (BigInt(regionCode) << 20n) | // 2-bit region code
+      (BigInt(this.machineId) << 10n) |
+      (BigInt(this.processId) << 5n) |
       BigInt(this.sequence)
     );
+  }
+
+  extractRegion(snowflakeId) {
+    return Number((BigInt(snowflakeId) >> 20n) & 0b11n); // Extract 2-bit region code
   }
 }
 

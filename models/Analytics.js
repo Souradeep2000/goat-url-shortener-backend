@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import { shards } from "../db.js";
+import { shards } from "../connections/postgres_config.js";
 
 const Analytics = shards.map((sequelize, index) =>
   sequelize.define("Analytics", {

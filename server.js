@@ -5,6 +5,8 @@ import morgan from "morgan";
 import { cleanupDatabase, setupDatabase } from "./models/Url.js";
 import Analytics from "./models/Analytics.js";
 import { verifyUser } from "./middlewares/auth.js";
+import { createShortUrl, getShortUrl } from "./controllers/urlController.js";
+import { flushAllShards } from "./connections/redis_config.js";
 
 dotenv.config();
 
@@ -15,15 +17,10 @@ app.use(morgan("dev"));
 
 const connectDB = async () => {
   try {
-    await cleanupDatabase();
+    // await cleanupDatabase();
+    // await flushAllShards();
     await setupDatabase();
     console.log("✅ Connected to DB");
-
-    // 🔍 Check if Global DB is connected
-    // await globalSequelize
-    //   .authenticate()
-    //   .then(() => console.log("✅ Global DB Connection Verified"))
-    //   .catch((err) => console.error("❌ Global DB Connection Error:", err));
   } catch (err) {
     console.error("❌ DB Connection Error:", err);
     process.exit(1);
@@ -43,6 +40,11 @@ app.get("/protected-route", verifyUser, (req, res) => {
   res.json({ message: "You are logged in!", user: req.user });
 });
 
+app.post("/api/shorturl", createShortUrl);
+app.get("/api/shorturl/:region/:shortUrl", getShortUrl);
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+export default app;

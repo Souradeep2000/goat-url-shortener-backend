@@ -10,6 +10,17 @@ const poolConfig = {
 };
 
 const shards = [
+  new Sequelize(process.env.DATABASE_URL_SHARD3_SINGAPORE, {
+    dialect: "postgres",
+    logging: false,
+    pool: poolConfig,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
+  }),
   new Sequelize(process.env.DATABASE_URL_SHARD1_EAST_US, {
     dialect: "postgres",
     logging: false,

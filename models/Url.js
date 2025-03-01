@@ -1,18 +1,10 @@
-import { shards, globalSequelize } from "../db.js";
+import { shards, globalSequelize } from "../connections/postgres_config.js";
 import dotenv from "dotenv";
 import crypto from "crypto";
 
 dotenv.config();
 
 const numShards = shards.length;
-
-// function computeHashKey(shortUrl, numShards) {
-//   return (
-//     Math.abs(
-//       crypto.createHash("sha256").update(shortUrl).digest().readUInt32BE(0)
-//     ) % numShards
-//   );
-// }
 
 function computeHashKey(shortUrl, numShards) {
   const hash = crypto.createHash("sha256").update(shortUrl).digest();

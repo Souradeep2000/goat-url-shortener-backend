@@ -1,4 +1,4 @@
-import { shards, globalSequelize } from "../db.js";
+import { shards, globalSequelize } from "../connections/postgres_config.js";
 
 import SnowflakeID from "../middlewares/snowflake.js";
 
@@ -68,7 +68,7 @@ async function insertTestData() {
 
   const snowflake = new SnowflakeID();
   const id = snowflake.generate();
-  console.log(id);
+  // console.log(id);
   const shardIdx = Number(id % BigInt(shards.length));
   const timestamp = Number(id >> 22n) + 1735689600000;
 
