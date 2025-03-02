@@ -1,4 +1,9 @@
-import { shards, globalSequelize } from "../connections/postgres_config.js";
+import {
+  shards,
+  globalSequelize,
+  globalReplicas,
+  shardReplicas,
+} from "../connections/postgres_config.js";
 import dotenv from "dotenv";
 import crypto from "crypto";
 
@@ -44,6 +49,13 @@ const setupGlobal = async () => {
       `);
     }
 
+    await Promise.all(
+      globalReplicas.map(async (replica, index) => {
+        await replica.authenticate();
+        console.log(`✅ Connected to Global Replica ${index + 1}`);
+      })
+    );
+
     console.log("✅ Global setup completed successfully!");
   } catch (error) {
     console.error("❌ Error setting up global-database:", error);
@@ -81,6 +93,13 @@ const setupShards = async (idx) => {
       CREATE INDEX IF NOT EXISTS idx_urls_createdAt ON urls ("createdAt");
       CREATE INDEX IF NOT EXISTS idx_urls_userId_createdAt ON urls ("userId", "createdAt");
     `);
+
+    await Promise.all(
+      shardReplicas[idx].map(async (replica, index) => {
+        await replica.authenticate();
+        console.log(`✅ Connected to Shard Replica ${index + 1}`);
+      })
+    );
 
     console.log(`✅ Shard${idx} setup completed successfully!`);
   } catch (error) {

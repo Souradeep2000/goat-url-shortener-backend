@@ -6,7 +6,7 @@ import { cleanupDatabase, setupDatabase } from "./models/Url.js";
 import Analytics from "./models/Analytics.js";
 import { verifyUser } from "./middlewares/auth.js";
 import { createShortUrl, getShortUrl } from "./controllers/urlController.js";
-import { flushAllShards } from "./connections/redis_config.js";
+import { flushAllRedisShards } from "./connections/redis_config.js";
 
 dotenv.config();
 
@@ -18,7 +18,7 @@ app.use(morgan("dev"));
 const connectDB = async () => {
   try {
     // await cleanupDatabase();
-    // await flushAllShards();
+    // await flushAllRedisShards();
     await setupDatabase();
     console.log("✅ Connected to DB");
   } catch (err) {

@@ -1,4 +1,9 @@
-import { shards, globalSequelize } from "../connections/postgres_config.js";
+import {
+  shards,
+  globalSequelize,
+  globalReplicas,
+  shardReplicas,
+} from "../connections/postgres_config.js";
 import SnowflakeID from "../middlewares/snowflake.js";
 import { redisNodes } from "../connections/redis_config.js";
 import { regionMap } from "../middlewares/regionMap.js";
@@ -87,7 +92,9 @@ export const getShortUrl = async (req, res) => {
       return res.json({ success: true, data: JSON.parse(cachedData) });
     }
 
-    const [shardResult] = await globalSequelize.query(
+    const globalDBSequelize = getRandomReplica(globalReplicas);
+
+    const [shardResult] = await globalDBSequelize.query(
       `SELECT "shardIdx" FROM shorturls_shard_map WHERE "shortUrl" = :shortUrl LIMIT 1`,
       { replacements: { shortUrl } }
     );
@@ -97,7 +104,8 @@ export const getShortUrl = async (req, res) => {
       return res.status(404).json({ success: false, message: "URL not found" });
     }
 
-    const [result] = await shards[shardIdx].query(
+    const shardSequelize = getRandomReplica(shardReplicas[shardIdx]);
+    const [result] = await shardSequelize.query(
       `SELECT * FROM urls WHERE "shortUrl" = :shortUrl LIMIT 1`,
       { replacements: { shortUrl } }
     );
@@ -119,3 +127,6 @@ export const getShortUrl = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+const getRandomReplica = (replicas) =>
+  replicas[Math.floor(Math.random() * replicas.length)];

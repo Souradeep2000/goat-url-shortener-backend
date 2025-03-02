@@ -47,7 +47,7 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-export const flushAllShards = async () => {
+export const flushAllRedisShards = async () => {
   try {
     const flushPromises = redisNodes.map(async (client, index) => {
       await client.flushall();
