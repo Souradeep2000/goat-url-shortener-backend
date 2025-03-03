@@ -40,7 +40,7 @@ app.get("/protected-route", verifyUser, (req, res) => {
   res.json({ message: "You are logged in!", user: req.user });
 });
 
-app.post("/api/shorturl", createShortUrl);
+app.post("/api/shorturl", verifyUser, createShortUrl);
 app.get("/api/shorturl/:region/:shortUrl", getShortUrl);
 
 app.listen(PORT, () => {

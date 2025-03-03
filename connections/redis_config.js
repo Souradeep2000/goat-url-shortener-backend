@@ -8,7 +8,13 @@ export const redisNodes = [
   new Redis(process.env.REDIS_SHARD_AMERICA),
 ];
 
-redisNodes.forEach((redis, index) => {
+export const redis_rate_limiter = new Redis(
+  process.env.REDIS_RATE_LIMITER_MUMBAI
+);
+
+const allRedisNodes = [...redisNodes, redis_rate_limiter];
+
+allRedisNodes.forEach((redis, index) => {
   // redis.on("connect", () => {
   //   console.log(`✅ Redis Node ${index + 1} Connected`);
   // });
@@ -34,7 +40,7 @@ process.on("SIGINT", async () => {
   console.log("Received SIGINT. Closing Redis connections...");
 
   await Promise.all(
-    redisNodes.map(async (redisClient, index) => {
+    allRedisNodes.map(async (redisClient, index) => {
       try {
         await redisClient.quit();
         console.log(`Redis shard ${index} closed successfully.`);
@@ -49,7 +55,7 @@ process.on("SIGINT", async () => {
 
 export const flushAllRedisShards = async () => {
   try {
-    const flushPromises = redisNodes.map(async (client, index) => {
+    const flushPromises = allRedisNodes.map(async (client, index) => {
       await client.flushall();
     });
 

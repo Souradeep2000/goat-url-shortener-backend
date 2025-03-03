@@ -1,17 +1,27 @@
 import admin from "../firebaseAdmin.js";
 
 export const verifyUser = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized - No token provided" });
-  }
-
   try {
+    const authHeader = req.headers.authorization;
+
+    // If no Authorization header is provided, treat as an unauthenticated user
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      req.user = null; // Allow unauthenticated users to proceed
+      return next();
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Verify Firebase ID token
     const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken;
+    req.user = decodedToken; // Authenticated user
+
     next();
   } catch (error) {
-    return res.status(403).json({ error: "Forbidden - Invalid token" });
+    console.error("Firebase Auth Error:", error.message || error);
+
+    // If token verification fails, treat as an unauthenticated user
+    req.user = null;
+    next();
   }
 };

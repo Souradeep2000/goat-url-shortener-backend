@@ -8,8 +8,12 @@ import SnowflakeID from "../middlewares/snowflake.js";
 import { redisNodes } from "../connections/redis_config.js";
 import { regionMap } from "../middlewares/regionMap.js";
 
+const hashIP = (ip) => crypto.createHash("md5").update(ip).digest("hex");
+
 export const createShortUrl = async (req, res) => {
-  const { shortUrl, longUrl, userId, region } = req.body;
+  const { shortUrl, longUrl, region } = req.body;
+
+  const userId = req.user ? `u:${req.user.id}` : `i:${hashIP(req.ip)}`;
   const regionCode = regionMap[region];
   const shardIdx = regionCode % shards.length; // Maps region to shard
 
@@ -22,11 +26,6 @@ export const createShortUrl = async (req, res) => {
     // console.log(id);
 
     const timestamp = Number(id >> 22n) + 1735689600000;
-    if (!userId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID required" });
-    }
 
     const globalInsertQuery = `
       INSERT INTO shorturls_shard_map ("shortUrl", "shardIdx")
@@ -59,11 +58,7 @@ export const createShortUrl = async (req, res) => {
     // ✅ Store the newly created short URL in Redis (Cache)
     const redisClient = redisNodes[regionCode % redisNodes.length];
 
-    await redisClient.setex(
-      `shortUrl:${shortUrl}`,
-      86400,
-      JSON.stringify(insertedUrl)
-    );
+    await redisClient.setex(`${shortUrl}`, 86400, JSON.stringify(insertedUrl));
 
     await global_t.commit();
     await shard_t.commit();
@@ -86,7 +81,7 @@ export const getShortUrl = async (req, res) => {
     const redisClient = redisNodes[regionCode % redisNodes.length];
 
     //Check Redis Cache (Cache Hit)
-    const cachedData = await redisClient.get(`shortUrl:${shortUrl}`);
+    const cachedData = await redisClient.get(`${shortUrl}`);
     if (cachedData) {
       // console.log(`✅ Cache HIT from Redis Shard ${redisIdx}!`);
       return res.json({ success: true, data: JSON.parse(cachedData) });

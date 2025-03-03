@@ -52,7 +52,7 @@ const setupGlobal = async () => {
     await Promise.all(
       globalReplicas.map(async (replica, index) => {
         await replica.authenticate();
-        console.log(`✅ Connected to Global Replica ${index + 1}`);
+        // console.log(`✅ Connected to Global Replica ${index + 1}`);
       })
     );
 
@@ -97,7 +97,7 @@ const setupShards = async (idx) => {
     await Promise.all(
       shardReplicas[idx].map(async (replica, index) => {
         await replica.authenticate();
-        console.log(`✅ Connected to Shard Replica ${index + 1}`);
+        // console.log(`✅ Connected to Shard Replica ${index + 1}`);
       })
     );
 

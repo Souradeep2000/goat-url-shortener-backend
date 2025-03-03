@@ -66,16 +66,17 @@ I did manual partioning as neon db does not do that on its own
 ```
 ✅ I sharded the database based on regions and created global ids using snowflake id (64 bits, time based unique )rather than UUIDS (124 bits very slow).
 ```
-🔹  On Sharding , the information of shorturl is lost as I don't know which shard contains that shortUrl
+
+🔹 On Sharding , the information of shorturl is lost as I don't know which shard contains that shortUrl
+
 - to handle that Cache Hit & Cache Miss is implemented
 
 ### ⚡ Cache Hit & Cache Miss
 
-
 Cache Hit: When the requested data is found in Redis, meaning it's fetched quickly without querying the database. 🚀
 <br>
 
-Cache Miss: When the requested data is not found in Redis, so the system queries PostgreSQL, retrieves the data, and then stores it in Redis for future fast access. 
+Cache Miss: When the requested data is not found in Redis, so the system queries PostgreSQL, retrieves the data, and then stores it in Redis for future fast access.
 <br>
 Using this cache-first approach improves performance by reducing database queries and serving frequently accessed data instantly. 🔥
 <br>
@@ -86,10 +87,91 @@ Used PostgreSQL as a backup for durability as redis is volatile. <br>
 ✅ How it Works <br>
 
 - On Write (Short URL Creation) : Insert shortUrl → shardIndex into PostgreSQL.
-Also insert the same mapping into Redis (cache).
+  Also insert the same mapping into Redis (cache).
 - On Read (Fetching Long URL) : First, check Redis.
-If found → Directly get the shardIndex from Redis.
-If not found → Query PostgreSQL, then store the result in Redis.
+  If found → Directly get the shardIndex from Redis.
+  If not found → Query PostgreSQL, then store the result in Redis.
 
+<br>
 
+# Rate Limiting Strategy
 
+## Overview
+
+Rate limiting is implemented to prevent abuse and ensure fair usage of the URL shortener service.
+
+- **Unauthenticated users**: Allowed **2 URL creations per day**.
+- **Authenticated users**: Allowed **10 URL creations per hour**.
+
+## Rate Limiting Strategies & Trade-offs
+
+### 1. Token Bucket Algorithm (Implemented)
+
+**How it works:**
+
+- Each user has a "bucket" of tokens.
+- Authenticated users receive **10 tokens per hour**; unauthenticated users receive **2 tokens per day**.
+- Each URL generation request consumes **1 token**.
+- Tokens are refilled at a fixed rate (hourly/daily based on user type).
+- Tried LRU to evict older keys but free plan does not support it
+
+**Pros:**
+✅ Handles burst traffic efficiently.
+✅ More flexible than fixed window limits.
+✅ Easy to implement with Redis.
+
+**Cons:**
+❌ Users may experience delays when tokens run out.
+
+---
+
+### 2. Fixed Window Counter
+
+**How it works:**
+
+- A simple counter per user is stored in Redis with an expiry time.
+- **Authenticated users**: Counter resets every hour.
+- **Unauthenticated users**: Counter resets every day.
+- If the count exceeds the limit, further requests are rejected until the reset.
+
+**Pros:**
+✅ Easy to implement using Redis `INCR` and TTL.
+✅ Efficient for handling normal traffic.
+
+**Cons:**
+❌ Can cause **traffic spikes** at reset times (e.g., all users get reset simultaneously).
+❌ Not smooth for high-load scenarios.
+
+---
+
+### 3. Sliding Window Log
+
+**How it works:**
+
+- Stores **timestamps** of requests per user in Redis.
+- At each request, old timestamps outside the window are removed.
+- If the count of requests within the time window exceeds the limit, the request is rejected.
+
+**Pros:**
+✅ Provides **smooth and accurate** rate limiting.
+✅ Avoids sudden traffic spikes at reset times.
+
+**Cons:**
+❌ **Memory-intensive** (stores all request timestamps).
+❌ Higher **read/write overhead** in Redis.
+
+---
+
+### 4. Sliding Window Counter (Hybrid Approach)
+
+**How it works:**
+
+- Uses a **rolling counter** that gradually decreases instead of resetting completely.
+- Smoothly averages requests over time to prevent sudden bursts.
+
+**Pros:**
+✅ **Balances accuracy and efficiency**.
+✅ Reduces sudden bursts while being fair.
+
+**Cons:**
+❌ More complex than a fixed window counter.
