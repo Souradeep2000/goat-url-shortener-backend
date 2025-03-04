@@ -71,6 +71,8 @@ I did manual partioning as neon db does not do that on its own
 
 - to handle that Cache Hit & Cache Miss is implemented
 
+---
+
 ### ⚡ Cache Hit & Cache Miss
 
 Cache Hit: When the requested data is found in Redis, meaning it's fetched quickly without querying the database. 🚀
@@ -92,9 +94,11 @@ Used PostgreSQL as a backup for durability as redis is volatile. <br>
   If found → Directly get the shardIndex from Redis.
   If not found → Query PostgreSQL, then store the result in Redis.
 
+---
+
 <br>
 
-# Rate Limiting Strategy
+# 🚀 Rate Limiting Strategy
 
 ## Overview
 
@@ -175,3 +179,23 @@ Rate limiting is implemented to prevent abuse and ensure fair usage of the URL s
 
 **Cons:**
 ❌ More complex than a fixed window counter.
+
+<br>
+
+# 🚀 Real-Time Analytics with Kafka & ClickHouse
+
+## 🔹 Architecture Overview
+
+- 1️⃣ **User clicks a short URL** → Backend publishes an event to **Kafka (`url_clicks` topic)**.
+- 2️⃣ **Kafka stores the event** → ClickHouse consumes it for **real-time analytics**.
+- 3️⃣ **User deletes a short URL** → Backend publishes a **deletion event (`url_deletes` topic)**, and ClickHouse removes associated records.
+
+## <span>Kafka is used for realtime data streaming like getting instant notifications for every purchases</span>
+
+## 🔥 Why Kafka + ClickHouse? (Locally)
+
+✅ **Scales to billions of events** without PostgreSQL bottlenecks.  
+✅ **Decouples analytics from your main database** for better performance.  
+✅ **Real-time analytics & deletion handling** with minimal latency.
+
+---
