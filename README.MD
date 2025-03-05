@@ -200,7 +200,7 @@ e
 ✅ **Decouples analytics from your main database** for better performance.  
 ✅ **Real-time analytics & deletion handling** with minimal latency.
 
-- `cmd.exe /c ".\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties"`
-- `cmd.exe /c ".\bin\windows\kafka-server-start.bat .\config\server.properties"`
+- `cmd.exe /c "c:\kafka\bin\windows\kafka-server-start.bat c:\kafka\config\server.properties"`
+- `cmd.exe /c "c:\kafka\bin\windows\zookeeper-server-start.bat c:\kafka\config\zookeeper.properties"`
 
 ---

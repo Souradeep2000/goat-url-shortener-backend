@@ -1,4 +1,4 @@
-import { redis_rate_limiter } from "../connections/redis_config";
+import { redis_rate_limiter } from "../connections/redis_config.js";
 import dotenv from "dotenv";
 import crypto from "crypto";
 
@@ -18,23 +18,28 @@ const rateLimiter = async (req, res, next) => {
   const key = `rl:${userId}`;
 
   try {
+    const existingTokens = await redis_rate_limiter.get(key);
+
+    if (existingTokens === null) {
+      await redis_rate_limiter.set(key, limit - 1, "NX", "EX", ttl);
+      // console.log(`Initialized key: ${key}, Limit: ${limit - 1}`);
+      return next();
+    }
     // Used Redis transactions (MULTI/EXEC) for atomicity
     const pipeline = redis_rate_limiter.multi();
 
-    // Get the remaining tokens
-    pipeline.get(key);
+    pipeline.decr(key);
+    pipeline.ttl(key);
+
     const results = await pipeline.exec();
-    let tokens = results[0] ? Number(results[0]) : null;
 
-    if (tokens === null) {
-      // First request, initialize counter
-      await redis_rate_limiter.setex(key, ttl, limit - 1);
-      return next();
-    }
+    let tokensLeft = results[0][1]; // Extract updated token count
+    let remainingTTL = results[1][1]; // Extract remaining TTL
 
-    if (tokens > 0) {
-      // Decrement only if tokens exist
-      await redis_rate_limiter.decr(key);
+    // console.log(
+    //   `User: ${userId}, Tokens left: ${tokensLeft}, TTL: ${remainingTTL}`
+    // );
+    if (tokensLeft >= 0) {
       return next();
     } else {
       return res.status(429).json({ error: "Rate limit exceeded. Try later." });

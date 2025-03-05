@@ -1,4 +1,5 @@
 import { Kafka } from "kafkajs";
+import Analytics from "../models/Analytics.js";
 
 const kafka = new Kafka({
   clientId: "url-shortener",

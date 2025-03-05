@@ -31,9 +31,9 @@ allRedisNodes.forEach((redis, index) => {
   //   console.warn(`⚠️ Redis Node ${index + 1} Disconnected`);
   // });
 
-  redis.on("reconnecting", () => {
-    console.log(`🔄 Redis Node ${index + 1} Reconnecting...`);
-  });
+  // redis.on("reconnecting", () => {
+  //   console.log(`🔄 Redis Node ${index + 1} Reconnecting...`);
+  // });
 });
 
 process.on("SIGINT", async () => {

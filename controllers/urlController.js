@@ -77,7 +77,7 @@ export const createShortUrl = async (req, res) => {
 export const getShortUrl = async (req, res) => {
   try {
     const { shortUrl } = req.params;
-
+    const region = "asia";
     const regionCode = regionMap[region];
 
     const redisClient = redisNodes[regionCode % redisNodes.length];

@@ -7,6 +7,7 @@ import { verifyUser } from "./middlewares/auth.js";
 import { createShortUrl, getShortUrl } from "./controllers/urlController.js";
 import { flushAllRedisShards } from "./connections/redis_config.js";
 import { consumeAnalyticsEvents } from "./connections/kafka.js";
+import rateLimiter from "./middlewares/rateLimiting.js";
 
 dotenv.config();
 
@@ -48,7 +49,7 @@ app.get("/protected-route", verifyUser, (req, res) => {
   res.json({ message: "You are logged in!", user: req.user });
 });
 
-app.post("/api/shorturl", verifyUser, createShortUrl);
+app.post("/api/shorturl", verifyUser, rateLimiter, createShortUrl);
 app.get("/:shortUrl", getShortUrl);
 
 app.listen(PORT, () => {
