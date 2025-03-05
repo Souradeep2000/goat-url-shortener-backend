@@ -182,7 +182,9 @@ Rate limiting is implemented to prevent abuse and ensure fair usage of the URL s
 
 <br>
 
-# 🚀 Real-Time Analytics with Kafka & ClickHouse
+# 🚀 Real-Time Analytics with Kafka & ClickHous
+
+e
 
 ## 🔹 Architecture Overview
 
@@ -197,5 +199,8 @@ Rate limiting is implemented to prevent abuse and ensure fair usage of the URL s
 ✅ **Scales to billions of events** without PostgreSQL bottlenecks.  
 ✅ **Decouples analytics from your main database** for better performance.  
 ✅ **Real-time analytics & deletion handling** with minimal latency.
+
+- `cmd.exe /c ".\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties"`
+- `cmd.exe /c ".\bin\windows\kafka-server-start.bat .\config\server.properties"`
 
 ---

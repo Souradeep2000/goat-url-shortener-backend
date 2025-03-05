@@ -3,10 +3,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import { cleanupDatabase, setupDatabase } from "./models/Url.js";
-import Analytics from "./models/Analytics.js";
 import { verifyUser } from "./middlewares/auth.js";
 import { createShortUrl, getShortUrl } from "./controllers/urlController.js";
 import { flushAllRedisShards } from "./connections/redis_config.js";
+import { consumeAnalyticsEvents } from "./connections/kafka.js";
 
 dotenv.config();
 
@@ -15,10 +15,18 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
+consumeAnalyticsEvents()
+  .then(() => console.log("Kafka Consumer started successfully 🚀"))
+  .catch((err) => console.error("Error starting Kafka Consumer ❌:", err));
+
 const connectDB = async () => {
   try {
-    // await cleanupDatabase();
-    // await flushAllRedisShards();
+    await cleanupDatabase();
+    await flushAllRedisShards();
     await setupDatabase();
     console.log("✅ Connected to DB");
   } catch (err) {
@@ -41,7 +49,7 @@ app.get("/protected-route", verifyUser, (req, res) => {
 });
 
 app.post("/api/shorturl", verifyUser, createShortUrl);
-app.get("/api/shorturl/:region/:shortUrl", getShortUrl);
+app.get("/:shortUrl", getShortUrl);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
