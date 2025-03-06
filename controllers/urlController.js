@@ -97,14 +97,14 @@ export const getShortUrl = async (req, res) => {
     if (cachedData) {
       const urlData = JSON.parse(cachedData);
 
-      await sendAnalyticsEvent({
-        shortUrlId: urlData.id,
-        ipAddress: req.ip,
-        country: region, // You can add GeoIP later
-        referrer: req.get("Referer") || "Direct",
-        device: req.headers["user-agent"],
-        timestamp: new Date(),
-      });
+      // await sendAnalyticsEvent({
+      //   shortUrlId: urlData.id,
+      //   ipAddress: req.ip,
+      //   country: region, // You can add GeoIP later
+      //   referrer: req.get("Referer") || "Direct",
+      //   device: req.headers["user-agent"],
+      //   timestamp: new Date(),
+      // });
 
       // return res.json({ success: true, data: JSON.parse(cachedData) });
       return res.redirect(301, urlData.longUrl);
