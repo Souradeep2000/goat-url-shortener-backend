@@ -9,11 +9,25 @@ import { redisNodes } from "../connections/redis_config.js";
 import { regionMap } from "../middlewares/regionMap.js";
 import { sendAnalyticsEvent } from "../connections/kafka.js";
 import crypto from "crypto";
+import { nanoid } from "nanoid";
 
 const hashIP = (ip) => crypto.createHash("md5").update(ip).digest("hex");
 
+const validateCustomAlias = (alias) => {
+  const aliasRegex = /^[a-zA-Z0-9_-]{3,20}$/; // Allow letters, numbers, underscores, and hyphens (3-20 chars)
+  return aliasRegex.test(alias);
+};
+
 export const createShortUrl = async (req, res) => {
-  const { shortUrl, longUrl, region } = req.body;
+  const { longUrl, region, customAlias } = req.body;
+
+  const baseUrl = `${req.protocol}://${req.get("host")}/`;
+
+  let shortUrl = baseUrl + (customAlias || nanoid(8));
+
+  if (customAlias && !validateCustomAlias(customAlias)) {
+    return res.status(400).json({ message: "Invalid custom alias" });
+  }
 
   const userId = req.user ? `u:${req.user.id}` : `i:${hashIP(req.ip)}`;
   const regionCode = regionMap[region];
@@ -72,7 +86,7 @@ export const createShortUrl = async (req, res) => {
 
 export const getShortUrl = async (req, res) => {
   try {
-    const { shortUrl } = req.params;
+    const shortUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
     const region = "asia";
     const regionCode = regionMap[region];
 
@@ -92,7 +106,8 @@ export const getShortUrl = async (req, res) => {
         timestamp: new Date(),
       });
 
-      return res.json({ success: true, data: JSON.parse(cachedData) });
+      // return res.json({ success: true, data: JSON.parse(cachedData) });
+      return res.redirect(301, urlData.longUrl);
     }
 
     const globalDBSequelize = getRandomReplica(globalReplicas);
@@ -129,7 +144,8 @@ export const getShortUrl = async (req, res) => {
 
     await redisClient.setex(`${shortUrl}`, 86400, JSON.stringify(urlData));
 
-    res.json({ success: true, data: result[0] });
+    // res.json({ success: true, data: result[0] });
+    return res.redirect(301, urlData.longUrl);
   } catch (err) {
     console.error("Database Query Error:", err);
     res.status(500).json({ success: false, message: "Server error" });

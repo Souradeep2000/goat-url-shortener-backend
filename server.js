@@ -21,14 +21,14 @@ BigInt.prototype.toJSON = function () {
   return this.toString();
 };
 
-consumeAnalyticsEvents()
-  .then(() => console.log("Kafka Consumer started successfully 🚀"))
-  .catch((err) => console.error("Error starting Kafka Consumer ❌:", err));
+// consumeAnalyticsEvents()
+//   .then(() => console.log("Kafka Consumer started successfully 🚀"))
+//   .catch((err) => console.error("Error starting Kafka Consumer ❌:", err));
 
 const connectDB = async () => {
   try {
-    await cleanupDatabase();
-    await flushAllRedisShards();
+    // await cleanupDatabase();
+    // await flushAllRedisShards();
     await setupDatabase();
     console.log("✅ Connected to DB");
   } catch (err) {

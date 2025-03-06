@@ -1,3 +1,9 @@
+# Frontend is not ready, use postman
+
+## use the postman collection
+
+<br>
+
 # Database Concepts:
 
 | Feature                | **Indexing 📖**                                               | **Partitioning 🧩**                                                       | **Sharding 🏗️**                                                 | **Replication 📄**                                      |

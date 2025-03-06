@@ -93,14 +93,14 @@ DO UPDATE SET
   }
 }
 
-cron.schedule("*/2 * * * *", async () => {
-  console.log("Running daily analytics aggregation...");
-  try {
-    await aggregateAnalytics();
-  } catch (error) {
-    console.error("❌ Cron job error:", error);
-  }
-});
+// cron.schedule("*/2 * * * *", async () => {
+//   console.log("Running daily analytics aggregation...");
+//   try {
+//     await aggregateAnalytics();
+//   } catch (error) {
+//     console.error("❌ Cron job error:", error);
+//   }
+// });
 // Explanation of */1 * * * *
 // */1 → Every 1 minute  , 0 * * * * -> every oth min of every hour
 // * → Every hour

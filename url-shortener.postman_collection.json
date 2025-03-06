@@ -1,0 +1,60 @@
+{
+	"info": {
+		"_postman_id": "7b7f522c-aa4a-4bad-8eb1-bf4290f5cf1c",
+		"name": "url-shortener",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14055731"
+	},
+	"item": [
+		{
+			"name": "create short url",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"customAlias\": \"test2\",\r\n    \"longUrl\": \"https://www.google.com/\",\r\n    \"region\": \"asia\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:5001/api/shorturl",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"api",
+						"shorturl"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get short url",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5001/test2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"test2"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
