@@ -133,14 +133,14 @@ export const getShortUrl = async (req, res) => {
       return res.status(404).json({ success: false, message: "URL not found" });
     }
 
-    await sendAnalyticsEvent({
-      shortUrlId: urlData.id,
-      ipAddress: req.ip,
-      country: region,
-      referrer: req.get("Referer") || "Direct",
-      device: req.headers["user-agent"],
-      timestamp: new Date(),
-    });
+    // await sendAnalyticsEvent({
+    //   shortUrlId: urlData.id,
+    //   ipAddress: req.ip,
+    //   country: region,
+    //   referrer: req.get("Referer") || "Direct",
+    //   device: req.headers["user-agent"],
+    //   timestamp: new Date(),
+    // });
 
     await redisClient.setex(`${shortUrl}`, 86400, JSON.stringify(urlData));
 

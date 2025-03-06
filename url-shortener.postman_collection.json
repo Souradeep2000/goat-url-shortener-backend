@@ -13,7 +13,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"customAlias\": \"test2\",\r\n    \"longUrl\": \"https://www.google.com/\",\r\n    \"region\": \"asia\"\r\n}",
+					"raw": "{\r\n    \"customAlias\": \"my-resume\",\r\n    \"longUrl\": \"https://docs.google.com/document/d/1f7aWREzV_30MrWXyMlQNq3Dl8YHV_1B8/edit?usp=drive_link&ouid=106789303778196457075&rtpof=true&sd=true\",\r\n    \"region\": \"asia\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -21,11 +21,13 @@
 					}
 				},
 				"url": {
-					"raw": "localhost:5001/api/shorturl",
+					"raw": "https://gus-8uyl.onrender.com/api/shorturl",
+					"protocol": "https",
 					"host": [
-						"localhost"
+						"gus-8uyl",
+						"onrender",
+						"com"
 					],
-					"port": "5001",
 					"path": [
 						"api",
 						"shorturl"
@@ -35,7 +37,7 @@
 			"response": []
 		},
 		{
-			"name": "get short url",
+			"name": "http://gus-8uyl.onrender.com/my-resume",
 			"request": {
 				"auth": {
 					"type": "noauth"
@@ -43,14 +45,15 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5001/test2",
+					"raw": "http://gus-8uyl.onrender.com/my-resume",
 					"protocol": "http",
 					"host": [
-						"localhost"
+						"gus-8uyl",
+						"onrender",
+						"com"
 					],
-					"port": "5001",
 					"path": [
-						"test2"
+						"my-resume"
 					]
 				}
 			},
