@@ -56,11 +56,7 @@ export const createShortUrl = async (req, res) => {
 
     const redisClient = redisNodes[regionCode % redisNodes.length];
 
-    await redisClient.setex(
-      `${shortUrl}`,
-      86400,
-      JSON.stringify({ ...insertedUrl, shardIdx })
-    );
+    await redisClient.setex(`${shortUrl}`, 86400, JSON.stringify(insertedUrl));
 
     await global_t.commit();
     await shard_t.commit();
@@ -88,11 +84,9 @@ export const getShortUrl = async (req, res) => {
       // console.log(`✅ Cache HIT from Redis Shard ${redisIdx}!`);
 
       const urlData = JSON.parse(cachedData);
-      const shardIdx = urlData.shardIdx;
 
       await sendAnalyticsEvent({
-        shardIdx,
-        shortUrl,
+        shortUrlId: urlData.id,
         ipAddress: req.ip,
         country: region, // You can add GeoIP later
         referrer: req.get("Referer") || "Direct",
@@ -127,8 +121,7 @@ export const getShortUrl = async (req, res) => {
     }
 
     await sendAnalyticsEvent({
-      shardIdx,
-      shortUrl,
+      shortUrlId: urlData.id,
       ipAddress: req.ip,
       country: region,
       referrer: req.get("Referer") || "Direct",

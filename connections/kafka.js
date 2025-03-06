@@ -26,28 +26,16 @@ export const consumeAnalyticsEvents = async () => {
   await consumer.run({
     eachMessage: async ({ message }) => {
       const data = JSON.parse(message.value.toString());
-      const { shardIdx, shortUrl, ipAddress, referrer, device, timestamp } =
-        data;
-
-      if (
-        shardIdx === undefined ||
-        shardIdx < 0 ||
-        shardIdx >= Analytics.length
-      ) {
-        console.error("❌ Invalid shardIdx:", shardIdx);
-        return;
-      }
+      const { shortUrlId, ipAddress, referrer, device, timestamp } = data;
 
       try {
-        await Analytics[shardIdx].create({
-          shortUrl,
+        await Analytics.create({
+          shortUrlId,
           ipAddress,
           referrer,
           device,
           timestamp,
         });
-
-        console.log(`✅ Stored analytics in Shard ${shardIdx}`);
       } catch (error) {
         console.error("❌ Error storing analytics:", error);
       }

@@ -104,7 +104,7 @@ Used PostgreSQL as a backup for durability as redis is volatile. <br>
 
 Rate limiting is implemented to prevent abuse and ensure fair usage of the URL shortener service.
 
-- **Unauthenticated users**: Allowed **2 URL creations per day**.
+- **Unauthenticated users**: Allowed **3 URL creations per day**.
 - **Authenticated users**: Allowed **10 URL creations per hour**.
 
 ## Rate Limiting Strategies & Trade-offs
@@ -182,9 +182,7 @@ Rate limiting is implemented to prevent abuse and ensure fair usage of the URL s
 
 <br>
 
-# 🚀 Real-Time Analytics with Kafka & ClickHous
-
-e
+# 🚀 Real-Time Analytics with Kafka & ClickHouse
 
 ## 🔹 Architecture Overview
 
@@ -194,13 +192,56 @@ e
 
 ## <span>Kafka is used for realtime data streaming like getting instant notifications for every purchases</span>
 
-## 🔥 Why Kafka + ClickHouse? (Locally)
+## 🔥 Why Kafka (Locally)
 
 ✅ **Scales to billions of events** without PostgreSQL bottlenecks.  
-✅ **Decouples analytics from your main database** for better performance.  
 ✅ **Real-time analytics & deletion handling** with minimal latency.
 
 - `cmd.exe /c "c:\kafka\bin\windows\kafka-server-start.bat c:\kafka\config\server.properties"`
 - `cmd.exe /c "c:\kafka\bin\windows\zookeeper-server-start.bat c:\kafka\config\zookeeper.properties"`
 
+### Worker Node Implementation
+
+<h4>This project uses Kafka for analytics, where the Kafka consumer acts as a worker node to handle asynchronous processing.</h4>
+
+<p>The worker node performs the following tasks:</p>
+
+- ✔ Listening to the analytics-events topic
+- ✔ Processing messages asynchronously
+- ✔ Saving data (e.g., analytics) to the database
+
 ---
+
+<br>
+
+# 📌Aggregation in Analytics
+
+## Why is Aggregation Useful?
+
+- **Reduces Storage Needs** – Instead of storing billions of raw events, store only daily/weekly summaries.
+- **Enables Faster Analytics** – Precomputed summaries allow instant insights (e.g., total clicks per day).
+- **Efficient Scaling** – Helps databases handle millions/billions of requests efficiently.
+
+## Example in URL Shortener Project
+
+### Without Aggregation (Raw Analytics)
+
+Every time a user clicks a short URL, an entry is stored in the `analytics` table:
+
+| id  | shortUrlId | timestamp           | ipAddress   | country | device  | referrer |
+| --- | ---------- | ------------------- | ----------- | ------- | ------- | -------- |
+| 1   | 101        | 2025-03-06 10:00:00 | 192.168.1.1 | India   | Mobile  | Google   |
+| 2   | 101        | 2025-03-06 10:01:00 | 192.168.1.2 | USA     | Desktop | Direct   |
+| 3   | 101        | 2025-03-06 10:05:00 | 192.168.1.3 | India   | Tablet  | Facebook |
+
+👉 **Problem:** Millions of rows per day = slow queries & large storage.
+
+### With Aggregation (Summarized Data)
+
+Instead of storing every click forever, aggregate daily stats and store them in an `aggregated_analytics` table:
+
+| shortUrlId | date       | totalClicks | uniqueVisitors | countryStats           | deviceStats                              | referrerStats                             |
+| ---------- | ---------- | ----------- | -------------- | ---------------------- | ---------------------------------------- | ----------------------------------------- |
+| 101        | 2025-03-06 | 3           | 3              | {"India": 2, "USA": 1} | {"Mobile": 1, "Desktop": 1, "Tablet": 1} | {"Google": 1, "Direct": 1, "Facebook": 1} |
+
+👉 **Now, instead of scanning millions of raw records, you can fetch analytics instantly! 🚀**

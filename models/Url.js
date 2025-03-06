@@ -75,7 +75,6 @@ const setupShards = async (idx) => {
         "shortUrl" TEXT NOT NULL,
         "longUrl" TEXT NOT NULL,
         "userId" TEXT,
-        clicks INTEGER DEFAULT 0,
         "createdAt" TIMESTAMP NOT NULL
       ) PARTITION BY HASH (id);
     `);
