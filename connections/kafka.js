@@ -6,8 +6,8 @@ const kafka = new Kafka({
   brokers: ["localhost:9092"], // Ensure Kafka is running on this port
 });
 
-const producer = kafka.producer();
-await producer.connect();
+// const producer = kafka.producer();
+// await producer.connect();
 
 export const sendAnalyticsEvent = async (analyticsData) => {
   await producer.send({
@@ -17,7 +17,7 @@ export const sendAnalyticsEvent = async (analyticsData) => {
   //   await producer.disconnect();
 };
 
-const consumer = kafka.consumer({ groupId: "analytics-group" });
+// const consumer = kafka.consumer({ groupId: "analytics-group" });
 
 export const consumeAnalyticsEvents = async () => {
   await consumer.connect();
