@@ -245,3 +245,7 @@ Instead of storing every click forever, aggregate daily stats and store them in 
 | 101        | 2025-03-06 | 3           | 3              | {"India": 2, "USA": 1} | {"Mobile": 1, "Desktop": 1, "Tablet": 1} | {"Google": 1, "Direct": 1, "Facebook": 1} |
 
 👉 **Now, instead of scanning millions of raw records, you can fetch analytics instantly! 🚀**
+
+` I used node-cron to create a cron job to aggregate the analytics every hour`
+
+---

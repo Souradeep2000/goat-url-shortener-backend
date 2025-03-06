@@ -6,6 +6,8 @@ import {
 } from "../connections/postgres_config.js";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import Analytics from "./Analytics.js";
+import AggregatedAnalytics from "./AggregatedAnalytics.js";
 
 dotenv.config();
 
@@ -32,6 +34,10 @@ const setupGlobal = async () => {
   try {
     await globalSequelize.authenticate();
     await globalSequelize.sync({ alter: true });
+
+    await Analytics.sync({ alter: true });
+    await AggregatedAnalytics.sync({ alter: true });
+
     console.log("✅ Global database synced successfully");
 
     await globalSequelize.query(`
@@ -55,6 +61,12 @@ const setupGlobal = async () => {
         // console.log(`✅ Connected to Global Replica ${index + 1}`);
       })
     );
+
+    await globalSequelize.query(`
+      CREATE INDEX IF NOT EXISTS idx_analytics_shortUrlId ON "Analytics" ("shortUrlId");
+      CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON "Analytics" ("timestamp");
+      CREATE INDEX IF NOT EXISTS idx_analytics_ipAddress ON "Analytics" ("ipAddress");
+    `);
 
     console.log("✅ Global setup completed successfully!");
   } catch (error) {
@@ -128,6 +140,10 @@ const cleanupGlobalDatabase = async () => {
     await globalSequelize.query(
       `DROP TABLE IF EXISTS shorturls_shard_map CASCADE;`
     );
+    await globalSequelize.query(`DROP TABLE IF EXISTS "Analytics" CASCADE;`);
+    await globalSequelize.query(
+      `DROP TABLE IF EXISTS "AggregatedAnalytics" CASCADE;`
+    );
     console.log("✅ Global-database cleanup completed successfully!");
   } catch (error) {
     console.error("❌ Error cleaning up global-database:", error);
@@ -147,6 +163,7 @@ const cleanupShards = async (idx) => {
       await sequelize.query(`DROP TABLE IF EXISTS urls_${i} CASCADE;`);
     }
     await sequelize.query(`DROP TABLE IF EXISTS urls CASCADE;`);
+    await sequelize.query(`DROP TABLE IF EXISTS "Analytics" CASCADE;`);
     console.log(`✅ Shard${idx} cleanup completed successfully!`);
   } catch (error) {
     console.error(`❌ Error cleaning up Shard${idx}:`, error);

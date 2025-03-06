@@ -20,6 +20,7 @@
     "ioredis": "^5.5.0",
     "kafkajs": "^2.2.4",
     "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
     "pg": "^8.13.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.5"

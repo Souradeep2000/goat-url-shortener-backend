@@ -81,8 +81,6 @@ export const getShortUrl = async (req, res) => {
     //Check Redis Cache (Cache Hit)
     const cachedData = await redisClient.get(`${shortUrl}`);
     if (cachedData) {
-      // console.log(`✅ Cache HIT from Redis Shard ${redisIdx}!`);
-
       const urlData = JSON.parse(cachedData);
 
       await sendAnalyticsEvent({

@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import { globalSequelize } from "../connections/postgres_config";
+import { globalSequelize } from "../connections/postgres_config.js";
 
 const Analytics = globalSequelize.define("Analytics", {
   id: {
@@ -8,14 +8,8 @@ const Analytics = globalSequelize.define("Analytics", {
     primaryKey: true,
   },
   shortUrlId: {
-    type: DataTypes.STRING,
+    type: DataTypes.BIGINT,
     allowNull: false,
-    references: {
-      model: "Urls",
-      key: "id",
-    },
-    onDelete: "CASCADE",
-    onUpdate: "CASCADE",
   },
   ipAddress: {
     type: DataTypes.STRING,
@@ -35,5 +29,9 @@ const Analytics = globalSequelize.define("Analytics", {
     defaultValue: DataTypes.NOW,
   },
 });
+
+// Analytics.sync({ alter: true }).then(() => {
+//   console.log("✅ Analytics table is ready.");
+// });
 
 export default Analytics;
