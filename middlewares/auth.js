@@ -14,13 +14,12 @@ export const verifyUser = async (req, res, next) => {
 
     // Verify Firebase ID token
     const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken; // Authenticated user
+
+    req.user = decodedToken.uid;
 
     next();
   } catch (error) {
     console.error("Firebase Auth Error:", error.message || error);
-
-    // If token verification fails, treat as an unauthenticated user
     req.user = null;
     next();
   }

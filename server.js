@@ -46,9 +46,6 @@ const PORT = process.env.PORT || 5000;
 app.get("/", (req, res) => {
   res.send("URL Shortener Backend is Running!");
 });
-app.get("/protected-route", verifyUser, (req, res) => {
-  res.json({ message: "You are logged in!", user: req.user });
-});
 
 app.post("/api/shorturl", verifyUser, rateLimiter, createShortUrl);
 app.get("/:shortUrl", getShortUrl);

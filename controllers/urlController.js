@@ -29,7 +29,7 @@ export const createShortUrl = async (req, res) => {
     return res.status(400).json({ message: "Invalid custom alias" });
   }
 
-  const userId = req.user ? `u:${req.user.id}` : `i:${hashIP(req.ip)}`;
+  const userId = req.user ? `u:${req.user}` : `i:${hashIP(req.ip)}`;
   const regionCode = regionMap[region];
   const shardIdx = regionCode % shards.length;
 

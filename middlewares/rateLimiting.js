@@ -12,17 +12,16 @@ const UNAUTH_TTL = Number(process.env.UNAUTH_TTL); // 1 day
 const hashIP = (ip) => crypto.createHash("md5").update(ip).digest("hex");
 
 const rateLimiter = async (req, res, next) => {
-  const userId = req.user ? `u:${req.user.id}` : `i:${hashIP(req.ip)}`;
+  const userId = req.user ? `u:${req.user}` : `i:${hashIP(req.ip)}`;
   const limit = req.user ? AUTH_LIMIT : UNAUTH_LIMIT;
   const ttl = req.user ? AUTH_TTL : UNAUTH_TTL;
-  const key = `rl:${userId}`;
+  const key = `${userId}`;
 
   try {
     const existingTokens = await redis_rate_limiter.get(key);
 
     if (existingTokens === null) {
       await redis_rate_limiter.set(key, limit - 1, "NX", "EX", ttl);
-      // console.log(`Initialized key: ${key}, Limit: ${limit - 1}`);
       return next();
     }
     // Used Redis transactions (MULTI/EXEC) for atomicity
@@ -36,9 +35,6 @@ const rateLimiter = async (req, res, next) => {
     let tokensLeft = results[0][1]; // Extract updated token count
     let remainingTTL = results[1][1]; // Extract remaining TTL
 
-    // console.log(
-    //   `User: ${userId}, Tokens left: ${tokensLeft}, TTL: ${remainingTTL}`
-    // );
     if (tokensLeft >= 0) {
       return next();
     } else {
