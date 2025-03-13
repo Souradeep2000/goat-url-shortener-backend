@@ -43,7 +43,8 @@ const setupGlobal = async () => {
     await globalSequelize.query(`
       CREATE TABLE IF NOT EXISTS shorturls_shard_map (
         "shortUrl" TEXT PRIMARY KEY,
-        "shardIdx" INTEGER NOT NULL
+        "shardIdx" INTEGER NOT NULL,
+        "userId" TEXT
       ) PARTITION BY HASH ("shortUrl");
     `);
 
@@ -63,6 +64,7 @@ const setupGlobal = async () => {
     );
 
     await globalSequelize.query(`
+      CREATE INDEX IF NOT EXISTS idx_shorturls_userid ON "shorturls_shard_map" ("userId");
       CREATE INDEX IF NOT EXISTS idx_analytics_shortUrlId ON "Analytics" ("shortUrlId");
       CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON "Analytics" ("timestamp");
       CREATE INDEX IF NOT EXISTS idx_analytics_ipAddress ON "Analytics" ("ipAddress");

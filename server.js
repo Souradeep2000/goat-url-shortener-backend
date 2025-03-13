@@ -8,7 +8,10 @@ import { createShortUrl, getShortUrl } from "./controllers/urlController.js";
 import { flushAllRedisShards } from "./connections/redis_config.js";
 import { consumeAnalyticsEvents } from "./connections/kafka.js";
 import rateLimiter from "./middlewares/rateLimiting.js";
-import { getAnalytics } from "./controllers/analyticsController.js";
+import {
+  getAnalytics,
+  getUserUrls,
+} from "./controllers/analyticsController.js";
 
 dotenv.config();
 
@@ -51,6 +54,7 @@ app.post("/api/shorturl", verifyUser, rateLimiter, createShortUrl);
 app.get("/:shortUrl", getShortUrl);
 
 app.get("/api/analytics", verifyUser, getAnalytics);
+app.get("/api/user", verifyUser, getUserUrls);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

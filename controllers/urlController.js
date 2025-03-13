@@ -43,12 +43,12 @@ export const createShortUrl = async (req, res) => {
     const timestamp = Number(id >> 22n) + 1735689600000;
 
     const globalInsertQuery = `
-      INSERT INTO shorturls_shard_map ("shortUrl", "shardIdx")
-      VALUES (:shortUrl, :shardIdx);
+      INSERT INTO shorturls_shard_map ("shortUrl", "shardIdx", "userId")
+      VALUES (:shortUrl, :shardIdx, :userId);
     `;
 
     const global_result = await globalSequelize.query(globalInsertQuery, {
-      replacements: { shortUrl, shardIdx },
+      replacements: { shortUrl, shardIdx, userId },
       transaction: global_t,
     });
 
